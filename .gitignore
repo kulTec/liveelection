@@ -1,5 +1,7 @@
 **/node_modules/
 **/.secret.local
+**/.env.local
+**/.env.*.local
 **/.vercel/
 **/firebase-debug.log
 **/firestore-debug.log

@@ -1,5 +1,9 @@
 # Election Live Updates System: backend (Firebase) - Module B0
 
+## Production hosting
+
+The callable API now runs in Vercel under `election-live-web-A8/api`; Firebase Auth, Firestore, and Messaging remain the identity and data services. Configure the environment variables listed in the repository README. Do not deploy the legacy `functions` directory to production. Deploy Firestore rules, indexes, and Storage rules from this folder with `firebase deploy --only firestore,storage`.
+
 ## Data model (Firestore)
 | Path | Written by | Purpose |
 |---|---|---|
@@ -15,15 +19,17 @@
 
 Roles are Firebase Auth custom claims: owner/admin/coordinator (staff), agent (also carries partyId, agentId, puCode).
 
+Production server-side requests and report processing run through the Vercel API in the web project. The Functions implementation below is retained for emulator/reference use; it is not the production API.
+
 ## Setup on your PC (do in this order)
 1. Install Node.js 20+. Run `npm i -g firebase-tools`, then `firebase login`.
-2. console.firebase.google.com > Add project (e.g. allyve-monitor). Upgrade to the Blaze (pay-as-you-go) plan: Cloud Functions needs it.
+2. console.firebase.google.com > Add project (e.g. allyve-monitor). Enable Email/Password authentication, Firestore, and Storage as needed. Cloud Storage may require a billing-enabled Firebase plan.
 3. Build > Authentication > Get started > enable **Email/Password**.
 4. Build > Firestore Database > Create (production mode, choose the region nearest Nigeria you are offered).
 5. In this folder: `firebase use --add` (pick your project), then `cd functions && npm install && cd ..`.
-6. Secrets: `firebase functions:secrets:set OTP_SALT` (paste a long random string) and `firebase functions:secrets:set SMTP_URL` (e.g. `smtps://USER:PASS@smtp.yourprovider.com:465`, from any email provider).
+6. For production API secrets, configure `FIREBASE_SERVICE_ACCOUNT_JSON`, `OTP_SALT`, and either `SMTP_URL` or `RESEND_API_KEY` in Vercel Project Settings. Never commit or paste secret values into source files.
 7. For local emulation, create `functions/.secret.local` with `SMTP_URL=emulator-log-only` and `OTP_SALT=local-development-only-change-before-production`. This keeps the Functions Emulator from trying to fetch secrets from Google Secret Manager; OTP emails print in the emulator terminal and are never sent through SMTP. Agent login OTPs are only printed when the submitted ID matches an active agent in the emulator's Firestore data; unknown or inactive IDs still return the same success response, with a diagnostic in the emulator terminal. This local file is ignored by Git. Then test with `firebase emulators:start`. Import sample data with `FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 node scripts/import-pus.js sample.csv`.
-8. Deploy: `firebase deploy --only firestore,functions`.
+8. Deploy rules and indexes: `firebase deploy --only firestore,storage`. The old Firebase Functions code remains for emulator/reference use only.
 9. Load the real polling unit list: get a CSV in the format above (check the source licence), then run the import script against production with a service-account key.
 
 ## Anti-fraud implemented

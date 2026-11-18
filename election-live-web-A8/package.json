@@ -1,0 +1,14 @@
+{
+  "private": true,
+  "engines": {
+    "node": "22.x"
+  },
+  "dependencies": {
+    "@google-cloud/firestore": "^9.4.1",
+    "firebase-admin": "^14.5.1",
+    "nodemailer": "^10.6.0"
+  },
+  "scripts": {
+    "test": "node --test"
+  }
+}

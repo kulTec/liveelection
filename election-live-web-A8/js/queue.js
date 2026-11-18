@@ -1,6 +1,6 @@
 // Offline outbox: every report is saved on the phone FIRST (IndexedDB), then sent when there is network.
 import {uuid} from './store.js';
-import {db,storage,auth,doc,setDoc,serverTimestamp,Timestamp,collection,query,where,getDocs,ref,uploadBytes} from './firebase.js';
+import {storage,auth,collection,query,where,getDocs,ref,uploadBytes,call} from './firebase.js';
 const open=()=>new Promise((res,rej)=>{const r=indexedDB.open('election-live-outbox',1);r.onupgradeneeded=()=>r.result.createObjectStore('q',{keyPath:'id'});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
 const tx=async(mode,fn)=>{const d=await open();return new Promise((res,rej)=>{const t=d.transaction('q',mode),r=fn(t.objectStore('q'));t.oncomplete=()=>res(r&&r.result);t.onerror=()=>rej(t.error)})};
 export const all=()=>tx('readonly',s=>s.getAll());
@@ -22,7 +22,7 @@ async function send(it,c){const d={...it.data};
   if(it.blob){const path=`sheets/${c.partyId}/${c.puCode}/${it.id}.jpg`;
     try{await uploadBytes(ref(storage,path),it.blob,{contentType:'image/jpeg'})}catch(e){if(e.code!=='storage/unauthorized')throw e}   // create-only rule: "unauthorized" on retry means it is already there
     d.sheetPath=path}
-  await setDoc(doc(db,`parties/${c.partyId}/reports`,it.id),{type:it.type,puCode:c.puCode,agentId:c.agentId,partyId:c.partyId,data:d,lat:it.lat,lng:it.lng,clientTime:Timestamp.fromMillis(it.clientTime),clientUuid:it.id,serverTime:serverTimestamp()})}
+  await call('submitReport',{type:it.type,data:d,lat:it.lat,lng:it.lng,clientTime:it.clientTime,clientUuid:it.id})}
 const already=async(it,c)=>!(await getDocs(query(collection(db,`parties/${c.partyId}/reports`),where('agentId','==',c.agentId),where('clientUuid','==',it.id)))).empty;
 
 export async function flush(){if(busy||!navigator.onLine||!auth.currentUser)return;busy=true;emit();
