@@ -1,0 +1,14 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Result sheet photos: an agent may CREATE one image (max 2 MB) only inside their own party/unit folder. No overwrite, no delete.
+    match /sheets/{pid}/{pu}/{file} {
+      allow create: if request.auth != null && request.auth.token.role == 'agent'
+        && request.auth.token.partyId == pid && request.auth.token.puCode == pu
+        && request.resource.size < 2 * 1024 * 1024 && request.resource.contentType == 'image/jpeg';
+      allow read: if request.auth != null && request.auth.token.partyId == pid && request.auth.token.role in ['owner','admin','coordinator'];
+      allow update, delete: if false;
+    }
+    match /{allPaths=**} { allow read, write: if false; }
+  }
+}

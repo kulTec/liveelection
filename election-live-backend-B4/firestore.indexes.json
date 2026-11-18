@@ -1,0 +1,7 @@
+{"indexes":[
+ {"collectionGroup":"units","queryScope":"COLLECTION","fields":[{"fieldPath":"stateCode","order":"ASCENDING"},{"fieldPath":"lgaCode","order":"ASCENDING"}]},
+ {"collectionGroup":"units","queryScope":"COLLECTION","fields":[{"fieldPath":"stateCode","order":"ASCENDING"},{"fieldPath":"lgaCode","order":"ASCENDING"},{"fieldPath":"wardCode","order":"ASCENDING"}]},
+ {"collectionGroup":"alerts","queryScope":"COLLECTION","fields":[{"fieldPath":"stateCode","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"}]},
+ {"collectionGroup":"alerts","queryScope":"COLLECTION","fields":[{"fieldPath":"stateCode","order":"ASCENDING"},{"fieldPath":"lgaCode","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"}]},
+ {"collectionGroup":"alerts","queryScope":"COLLECTION","fields":[{"fieldPath":"stateCode","order":"ASCENDING"},{"fieldPath":"lgaCode","order":"ASCENDING"},{"fieldPath":"wardCode","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"}]}],
+ "fieldOverrides":[{"collectionGroup":"agents","fieldPath":"agentCode","indexes":[{"queryScope":"COLLECTION_GROUP","order":"ASCENDING"}]}]}

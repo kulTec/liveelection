@@ -1,0 +1,61 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+    function signedIn() { return request.auth != null; }
+    function role() { return request.auth.token.role; }
+    function pid() { return request.auth.token.partyId; }
+    function isAdmin(p) { return signedIn() && pid() == p && role() in ['owner','admin']; }
+    // Coordinator scope lives in the login token: scopeLevel = state | lga | ward, plus the matching codes.
+    function inScope(d) {
+      let t = request.auth.token;
+      return (t.scopeLevel == 'state' && d.stateCode == t.stateCode)
+          || (t.scopeLevel == 'lga'   && d.stateCode == t.stateCode && d.lgaCode == t.lgaCode)
+          || (t.scopeLevel == 'ward'  && d.stateCode == t.stateCode && d.lgaCode == t.lgaCode && d.wardCode == t.wardCode);
+    }
+    function canSee(p, d) { return isAdmin(p) || (signedIn() && pid() == p && role() == 'coordinator' && inScope(d)); }
+    function isStaff(p) { return signedIn() && pid() == p && role() in ['owner','admin','coordinator']; }
+
+    match /polling_units/{id} { allow read: if signedIn(); allow write: if false; }
+
+    match /parties/{p} {
+      allow read: if isStaff(p);
+      allow write: if false;                       // only Cloud Functions write here
+
+      match /agents/{a} {
+        allow read: if canSee(p, resource.data) || (signedIn() && request.auth.token.agentId == a);
+        allow write: if false;
+      }
+      match /coordinators/{c} {
+        allow read: if isAdmin(p);
+        allow write: if false;
+      }
+      match /units/{u} {
+        allow read: if canSee(p, resource.data) || (signedIn() && request.auth.token.puCode == u);
+        allow write: if false;
+      }
+      // Agents may only CREATE reports for their own unit. Doc id = clientUuid, so offline retries never duplicate.
+      match /reports/{r} {
+        allow read: if canSee(p, resource.data) || (signedIn() && role() == 'agent' && resource.data.agentId == request.auth.token.agentId);
+        allow create: if signedIn() && role() == 'agent' && pid() == p
+          && request.resource.data.keys().hasOnly(['type','puCode','agentId','partyId','data','lat','lng','clientTime','clientUuid','serverTime'])
+          && request.resource.data.type in ['accreditation','incident','result']
+          && request.resource.data.puCode == request.auth.token.puCode
+          && request.resource.data.agentId == request.auth.token.agentId
+          && request.resource.data.partyId == p
+          && request.resource.data.clientUuid == r
+          && request.resource.data.serverTime == request.time
+          && request.resource.data.lat is number && request.resource.data.lng is number
+          && request.resource.data.clientTime is timestamp
+          && get(/databases/$(db)/documents/parties/$(p)/agents/$(request.auth.token.agentId)).data.status == 'active';   // removed agents cannot report
+        allow update, delete: if false;            // reports are immutable (audit trail)
+      }
+      match /alerts/{al} {
+        allow read: if canSee(p, resource.data);
+        allow update: if canSee(p, resource.data) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['acknowledgedBy','acknowledgedAt']);
+        allow create, delete: if false;
+      }
+      match /audit/{x} { allow read: if isAdmin(p); allow write: if false; }
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}

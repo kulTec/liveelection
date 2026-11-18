@@ -1,0 +1,21 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Firestore Emulator",
+			"type": "shell",
+			"command": "firebase",
+			"args": [
+				"emulators:start",
+				"--only",
+				"firestore",
+				"--project",
+				"accord-party-live-election",
+				"--import=data",
+				"--export-on-exit=data"
+			],
+			"isBackground": true,
+			"problemMatcher": []
+		}
+	]
+}
